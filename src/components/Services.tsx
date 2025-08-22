@@ -79,5 +79,4 @@ const ServiceCard: React.FC<Props> = ({ service, onEdit, onDelete }) => {
     </div>
   );
 };
-
 export Service;
