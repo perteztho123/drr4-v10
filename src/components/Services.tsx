@@ -80,4 +80,4 @@ const ServiceCard: React.FC<Props> = ({ service, onEdit, onDelete }) => {
   );
 };
 
-export default ServiceCard;
+export default Service;
