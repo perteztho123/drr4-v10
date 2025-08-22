@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
 import { Plus, Search } from 'lucide-react';
-import ServiceCard from './ServiceCard';
+import Service from './Service';
 
 const ICON_OPTIONS = ['Shield', 'Heart', 'Truck', 'Home', 'AlertTriangle', 'Users', 'Phone', 'Settings'] as const;
 
