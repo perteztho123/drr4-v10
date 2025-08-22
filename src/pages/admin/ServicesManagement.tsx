@@ -1,102 +1,97 @@
 import React, { useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
+import ServiceCard from './ServiceCard';
 
-interface ServiceFormData {
+const ICON_OPTIONS = ['Shield', 'Heart', 'Truck', 'Home', 'AlertTriangle', 'Users', 'Phone', 'Settings'] as const;
+
+export type ServiceFormData = {
   title: string;
   description: string;
-  icon: string;
+  icon: typeof ICON_OPTIONS[number];
   tags: string[];
   status: 'active' | 'inactive';
-}
+};
+
+const initialForm: ServiceFormData = {
+  title: '',
+  description: '',
+  icon: 'Shield',
+  tags: [],
+  status: 'active'
+};
 
 const ServicesManagement: React.FC = () => {
   const { services, addService, updateService, deleteService } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState<ServiceFormData>({
-    title: '',
-    description: '',
-    icon: 'Shield',
-    tags: [],
-    status: 'active'
-  });
+  const [formData, setFormData] = useState<ServiceFormData>(initialForm);
   const [tagInput, setTagInput] = useState('');
 
-  const iconOptions = ['Shield', 'Heart', 'Truck', 'Home', 'AlertTriangle', 'Users', 'Phone', 'Settings'];
-
+  // Filter logic
   const filteredServices = services.filter(service =>
     service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     service.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (editingService) {
-      updateService(editingService, formData).then(() => {
-        alert('Service updated successfully!');
-      }).catch(() => {
-        alert('Error updating service. Please try again.');
-      });
-    } else {
-      addService(formData).then(() => {
-        alert('Service created successfully!');
-      }).catch(() => {
-        alert('Error creating service. Please try again.');
-      });
-    }
-
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      description: '',
-      icon: 'Shield',
-      tags: [],
-      status: 'active'
-    });
-    setTagInput('');
+  // Modal open for add/edit
+  const openModalToAdd = () => {
+    setIsModalOpen(true);
+    setFormData(initialForm);
     setEditingService(null);
-    setIsModalOpen(false);
+    setTagInput('');
   };
 
-  const handleEdit = (service: any) => {
+  const openModalToEdit = (service: any) => {
+    setIsModalOpen(true);
     setFormData({
       title: service.title,
       description: service.description,
       icon: service.icon,
       tags: service.tags,
-      status: service.status
+      status: service.status,
     });
     setEditingService(service.id);
-    setIsModalOpen(true);
+    setTagInput('');
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
-      deleteService(id);
+  // Submit handler
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingService) {
+      updateService(editingService, formData)
+        .then(() => alert('Service updated successfully!'))
+        .catch(() => alert('Error updating service. Please try again.'));
+    } else {
+      addService(formData)
+        .then(() => alert('Service created successfully!'))
+        .catch(() => alert('Error creating service. Please try again.'));
     }
+    closeModal();
   };
 
+  // Tag handlers
   const addTag = () => {
     if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, tagInput.trim()]
-      });
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
       setTagInput('');
     }
   };
 
   const removeTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(tag => tag !== tagToRemove)
-    });
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  // Modal close/reset
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingService(null);
+    setFormData(initialForm);
+    setTagInput('');
   };
 
   return (
@@ -108,7 +103,7 @@ const ServicesManagement: React.FC = () => {
           <p className="text-gray-600">Manage MDRRMO services and offerings</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={openModalToAdd}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
         >
           <Plus size={20} />
@@ -131,52 +126,12 @@ const ServicesManagement: React.FC = () => {
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredServices.map((service) => (
-          <div key={service.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <span className="text-blue-600 text-xl">🛡️</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{service.title}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    service.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {service.status}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleEdit(service)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  <Edit size={16} />
-                </button>
-                <button
-                  onClick={() => handleDelete(service.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-            
-            <p className="text-gray-600 text-sm mb-4">{service.description}</p>
-            
-            <div className="flex flex-wrap gap-2">
-              {service.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
+          <ServiceCard
+            key={service.id}
+            service={service}
+            onEdit={openModalToEdit}
+            onDelete={deleteService}
+          />
         ))}
       </div>
 
@@ -189,61 +144,49 @@ const ServicesManagement: React.FC = () => {
                 {editingService ? 'Edit Service' : 'Add Service'}
               </h2>
             </div>
-            
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Icon
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                 <select
                   value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                  onChange={e => setFormData(prev => ({ ...prev, icon: e.target.value as typeof ICON_OPTIONS[number] }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
                   <option value="">Select an icon</option>
-                  {iconOptions.map((icon) => (
+                  {ICON_OPTIONS.map(icon => (
                     <option key={icon} value={icon}>{icon}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
                 <div className="flex space-x-2 mb-2">
                   <input
                     type="text"
                     value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                    onChange={e => setTagInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Add a tag"
                   />
@@ -257,10 +200,7 @@ const ServicesManagement: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full flex items-center space-x-1"
-                    >
+                    <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-sm rounded-full flex items-center space-x-1">
                       <span>{tag}</span>
                       <button
                         type="button"
@@ -273,25 +213,21 @@ const ServicesManagement: React.FC = () => {
                   ))}
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
+                  onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
-
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={resetForm}
+                  onClick={closeModal}
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Cancel
